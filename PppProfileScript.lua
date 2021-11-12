@@ -11,7 +11,8 @@
     # Block routed traffic through router
     # Adjust according to your firewall setup
     # Remember to also change removal rules below
-    /ip firewall filter add action=reject chain=forward in-interface="$interfaceName" reject-with=icmp-admin-prohibited comment="auto-vpnauth-rule-$user-$interfaceName"
+    # This is not needed if traffic is blocked for all addreses in dynamic address_list vpn_pending
+    # /ip firewall filter add action=reject chain=forward in-interface="$interfaceName" reject-with=icmp-admin-prohibited comment="auto-vpnauth-rule-$user-$interfaceName"
 
     /system script run "JParseFunctions";
     :global JSONUnload;
@@ -31,14 +32,24 @@
 
     :local ntkAuthUuid ([$NtkAuthRequest host=$ntkHost accessId=$ntkAccessId authUser=$user authTitle="VPN connection" authDesc=$authDescMsg]);
 
+     # Terminates ppp connection in case of the script error
+     :if ($ntkAuthUuid = ";;ERROR Notakey Auth request send error") do { 
+     :log error  "Can't connect to the Notakey appliance!";
+      /ppp active remove [/ppp active find name=$user];
+      }
+        
     :if ([$NtkWaitFor uuid=$ntkAuthUuid host=$ntkHost accessId=$ntkAccessId]) do={
         :put "All cool, we are letting you in";
         # Remove blocking rule after successful 2FA autehntication
-        /ip firewall filter remove [/ip firewall filter find where comment="auto-vpnauth-rule-$user-$interfaceName"]
+        # /ip firewall filter remove [/ip firewall filter find where comment="auto-vpnauth-rule-$user-$interfaceName"]
+        :log inf "New VPN connection from: $user !";
     } else={
         :put "2FA check failed (due to expiry or denied)";
+        # Terminate active vpn connection
+        /ppp active remove [/ppp active find name=$user]
+                            
         # We have an unsuccessful authentication attempt. It is possible that someone has your VPN password!
-        /tool e-mail send to="noc@example.com" subject="VPN 2FA authentication failure for user $user from IP $callerId";
+        #/tool e-mail send to="noc@example.com" subject="VPN 2FA authentication failure for user $user from IP $callerId";
     }
 
     $NtkUnload
