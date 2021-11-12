@@ -18,8 +18,10 @@ from the same device as the VPN is initiated on, e.g. start vpn and approve from
 
 * Enable two factor authentication inside PPP profile that your VPN service uses (usually default-encryption)
   - Copy Up and Down scripts from PppProfileScript.lua into profile
+  - Configure address list name in the profile (vpn_pending)
   - Adjust Notakey Autehntication Server parameters (ntkHost & ntkAccessId)
-  - Adjust firewall rules according to your setup
+  - Adjust firewall rules according to your setup - block all trafic from addresses in the dynamic vpn_pending adress list
+  - Add firewall rule to accept access from vpn_pendin list to The Notakey server (in case you connect from the same smartphone you have to accept connection)
 
 ## Generic usage example
 ```
